@@ -1,217 +1,208 @@
-import pygame
-import random
+import pygame #helps us make GUI games in python
+import random #help us define which direction the ball will start moving in
 
+#frame rate per second
 FPS = 60
-# Defining the window size for the game
-window_width = 500
-window_height = 500
 
-# Defining the size of the side paddles
-paddle_height = 80
-paddle_width = 20
+#size of our window
+WINDOW_WIDTH = 400
+WINDOW_HEIGHT = 400
 
-# Defining the distance between the paddle and the window_height
-paddle_buff = 10
+#size of our paddle
+PADDLE_WIDTH = 10
+PADDLE_HEIGHT = 60
+#distance from the edge of the window
+PADDLE_BUFFER = 10
 
-# Defining the size of the "rectangular ball"
-ball_height = 15
-ball_width = 15
+#size of our ball
+BALL_WIDTH = 10
+BALL_HEIGHT = 10
 
-# Defining how fast the "ball" and paddle can move in the game space
-# "Ball" speed in the x direction
-ballspeed_x = 3
-# "Ball" speed in the y direction
-ballspeed_y = 2
-# Paddle speed in the y direction(it only moves in the y direction)
-paddlespeed_y = 2
+#speeds of our paddle and ball
+PADDLE_SPEED = 2
+BALL_X_SPEED = 3
+BALL_Y_SPEED = 2
 
-# Defining the color schemes of the "ball" and paddle
-# Background Color
-black = (0,0,0)
-# "Ball" Color
-white = (255,255,255)
-# AI Paddle Color
-green = (124,252,0)
-# Learning Paddle Color
-salmon = (255,160,122)
+#RGB colors for our paddle and ball
+WHITE = (255, 255, 255)
+GREEN = (124,252,0)
+SALMON = (255,160,122)
+BLACK = (0, 0, 0)
 
-# Initializing the screen using the predefined widow dimensions
-screen = pygame.display.set_mode((window_width, window_height))
+#initialize our screen using width and height vars
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
-# Drawing the assets using pygame.
+#draw our ball
+def drawBall(ballXPos, ballYPos):
+    #small rectangle, create it
+    ball = pygame.Rect(ballXPos, ballYPos, BALL_WIDTH, BALL_HEIGHT)
+    #draw it
+    pygame.draw.rect(screen, WHITE, ball)
 
-# Drawing the ball
-def drawBall(ballxPos, ballyPos):
-    # Defining the attributes of the ball
-    ball = pygame.Rect(ballxPos, ballyPos, ball_width, ball_height)
-    # Drawing the ball (where, color, what)
-    pygame.draw.rect(screen, white, ball)
 
-# Drawing the AI paddle
-def drawAIpaddle(aipaddleyPos):
-    aipaddle = pygame.Rect(paddle_buff, aipaddleyPos, paddle_width, paddle_height)
-    pygame.draw.rect(screen, green, aipaddle)
+def drawLearningPaddle(LearningPaddleYPos):
+    #crreate it
+    LearningPaddle = pygame.Rect(PADDLE_BUFFER, LearningPaddleYPos, PADDLE_WIDTH, PADDLE_HEIGHT)
+    #draw it
+    pygame.draw.rect(screen, SALMON, LearningPaddle)
 
-# Drawing the learning Paddle
-def drawLearningpaddle(learningpaddleyPos):
-    learningpaddle = pygame.Rect(paddle_buff, learningpaddleyPos, paddle_width, paddle_height)
-    pygame.draw.rect(screen, salmon, learningpaddle)
 
-# The next step is updating the ball position which is going to be
-# a function of the paddles, the ball and the
-# direction the ball is travelling in.
+def drawAIPaddle(AIPaddleYPos):
+    #create it, opposite side
+    AIPaddle = pygame.Rect(WINDOW_WIDTH - PADDLE_BUFFER - PADDLE_WIDTH, AIPaddleYPos, PADDLE_WIDTH, PADDLE_HEIGHT)
+    #draw it
+    pygame.draw.rect(screen, GREEN, AIPaddle)
 
-def updateBallPos(aipaddleyPos, learningpaddleyPos, ballxPos, ballyPos, ballxDir, ballyDir):
-    # The x position of the ball is updated as the ball moves in the game space
-    ballxPos = ballxPos + ballyDir * ballspeed_x
-    # The y position of the ball is updated as the ball moves in the game space
-    ballyPos = ballyPos + ballyDir * ballspeed_y
+
+#update the ball, using the paddle posistions the balls positions and the balls directions
+def updateBall(LearningPaddleYPos, AIPaddleYPos, ballXPos, ballYPos, ballXDirection, ballYDirection):
+
+    #update the x and y position
+    ballXPos = ballXPos + ballXDirection * BALL_X_SPEED
+    ballYPos = ballYPos + ballYDirection * BALL_Y_SPEED
     score = 0
 
-    # Check for whether the the ball hits the side of the screen or the learningpaddle
-    # If the x position of the ball is LTE to the paddle buffer and paddle width(aka hit the side of the screen) and..
-    if(ballxPos <= paddle_buff + paddle_width and
-        # ... if the y position of the ball + height of the ball is greater than the y position of the AIpaddle and..
-        ballyPos + ball_height >= aipaddleyPos and
-        # ..if the y position of the ball - the height of the ball is LTE the AIpaddle position + its height
-        ballyPos - ball_height <= aipaddleyPos + paddle_height):
-        #We change the direction the ball is moving in.
-        ballxDir = 1
-    elif (ballxPos <= 0):
-        ballxDir = 1
+    #checks for a collision, if the ball hits the left side, our learning agent
+    if (
+                        ballXPos <= PADDLE_BUFFER + PADDLE_WIDTH and ballYPos + BALL_HEIGHT >= LearningPaddleYPos and ballYPos - BALL_HEIGHT <= LearningPaddleYPos + PADDLE_HEIGHT):
+        #switches directions
+        ballXDirection = 1
+    #past it
+    elif (ballXPos <= 0):
+        #negative score
+        ballXDirection = 1
         score = -1
-        return [score, aipaddleyPos, learningpaddleyPos, ballxPos, ballyPos, ballxDir, ballyDir]
+        return [score, LearningPaddleYPos, AIPaddleYPos, ballXPos, ballYPos, ballXDirection, ballYDirection]
 
-    # Checking if we are ever able to beat the AI
-    # If the x position of the ball is within the difference of the windowidth, paddle_width and paddle_buff ...
-    if(ballxPos >= window_width - paddle_width - paddle_buff
-    # ...and if the y position of the ball plus the height of the ball is greater than or equal to the y position of the learning paddle
-        and ballyPos + ball_height >= learningpaddleyPos
-        # ... and if the y position of the ball - the height of the ball are less than the y position of the learning paddle + the paddle height
-        and ballyPos - ball_height <= learningpaddleyPos + paddle_height):
-        # The direction of the ball changes
-        ballxDir = -1
-    # else if the x position of the ball is greater that the window width - ball width (500 - 15 = 485) aka the ball passes we switch direction
-    elif (ballxPos >= window_width - ball_width):
-        ballxDir = -1
+    #check if hits the other side
+    if (
+                        ballXPos >= WINDOW_WIDTH - PADDLE_WIDTH - PADDLE_BUFFER and ballYPos + BALL_HEIGHT >= AIPaddleYPos and ballYPos - BALL_HEIGHT <= AIPaddleYPos + PADDLE_HEIGHT):
+        #switch directions
+        ballXDirection = -1
+    #past it
+    elif (ballXPos >= WINDOW_WIDTH - BALL_WIDTH):
+        #positive score
+        ballXDirection = -1
         score = 1
-        return [score, aipaddleyPos, learningpaddleyPos, ballxPos, ballyPos, ballxDir, ballyDir]
+        return [score, LearningPaddleYPos, AIPaddleYPos, ballXPos, ballYPos, ballXDirection, ballYDirection]
 
-    # Finally a check for whether the ball hits either the top of the screen or the bottom.
-    # If the ball hits the top, the direction needs to be changed to down and vice versa
-    if (ballyPos <= 0):
-        ballyPos = 0
-        ballyDir =1
+    #if it hits the top
+    #move down
+    if (ballYPos <= 0):
+        ballYPos = 0;
+        ballYDirection = 1;
+    #if it hits the bottom, move up
+    elif (ballYPos >= WINDOW_HEIGHT - BALL_HEIGHT):
+        ballYPos = WINDOW_HEIGHT - BALL_HEIGHT
+        ballYDirection = -1
+    return [score, LearningPaddleYPos, AIPaddleYPos, ballXPos, ballYPos, ballXDirection, ballYDirection]
 
-    # If the ball hits the bottom, it needs to change direction aswell
-    if (ballyPos >= window_height - ball_height):
-        ballyPos = window_height - ball_height
-        ballyDir = -1
-    return[score, aipaddleyPos, learningpaddleyPos, ballxPos, ballxDir, ballyDir]
-
-# Updating AI paddle position.
-def updateaiPaddle(action, aipaddleyPos):
+#update the paddle position
+def updateLearningPaddle(action, LearningPaddleYPos):
+    #if move up
     if (action[1] == 1):
-        aipaddleyPos = aipaddleyPos - paddlespeed_y
-
+        LearningPaddleYPos = LearningPaddleYPos - PADDLE_SPEED
+    #if move down
     if (action[2] == 1):
-        aipaddleyPos = aipaddleyPos + paddlespeed_y
+        LearningPaddleYPos = LearningPaddleYPos + PADDLE_SPEED
 
-    if (aipaddleyPos < 0):
-        aipaddleyPos = 0
-    if (aipaddleyPos > window_height - paddle_height):
-        aipaddleyPos = window_height - paddle_height
-    return aipaddleyPos
+    #don't let it move off the screen
+    if (LearningPaddleYPos < 0):
+        LearningPaddleYPos = 0
+    if (LearningPaddleYPos > WINDOW_HEIGHT - PADDLE_HEIGHT):
+        LearningPaddleYPos = WINDOW_HEIGHT - PADDLE_HEIGHT
+    return LearningPaddleYPos
 
-# Updating the learning paddle position.
-def updatelearningPaddle(learningpaddleyPos, ballyPos):
-    # Move down if ball is in upper half
-    if (learningpaddleyPos + paddle_height/2 < ballyPos + ball_height/2):
-        learningpaddleyPos = learningpaddleyPos + paddlespeed_y
 
-    # Move the ball up if the ball is in the lower half
-    if (learningpaddleyPos + paddle_height/2 > ballyPos + ball_height/2):
-        learningpaddleyPos = learningpaddleyPos - paddlespeed_y
+def updateAIPaddle(AIPaddleYPos, ballYPos):
+    #move down if ball is in upper half
+    if (AIPaddleYPos + PADDLE_HEIGHT/2 < ballYPos + BALL_HEIGHT/2):
+        AIPaddleYPos = AIPaddleYPos + PADDLE_SPEED
+    #move up if ball is in lower half
+    if (AIPaddleYPos + PADDLE_HEIGHT/2 > ballYPos + BALL_HEIGHT/2):
+        AIPaddleYPos = AIPaddleYPos - PADDLE_SPEED
+    #don't let it hit top
+    if (AIPaddleYPos < 0):
+        AIPaddleYPos = 0
+    #dont let it hit bottom
+    if (AIPaddleYPos > WINDOW_HEIGHT - PADDLE_HEIGHT):
+        AIPaddleYPos = WINDOW_HEIGHT - PADDLE_HEIGHT
+    return AIPaddleYPos
 
-    if (learningpaddleyPos < 0):
-        learningpaddleyPos = 0
 
-    if (learningpaddleyPos > window_height - paddle_height):
-        learningpaddleyPos = window_height - paddle_height
-    return learningpaddleyPos
-
-# Defining the game class.
-class Pong:
+#game class
+class PongGame:
     def __init__(self):
-        # We choos a random direction for the ball
+        #random number for initial direction of ball
         num = random.randint(0,9)
-        # Keeping track of the score
+        #keep score
         self.tally = 0
-        # Paddle positions are
-        self.aipaddleyPos = window_height/2 - paddle_height/2
-        self.learningpaddleyPos = window_height/2 - paddle_height/2
+        #initialie positions of paddle
+        self.LearningPaddleYPos = WINDOW_HEIGHT / 2 - PADDLE_HEIGHT / 2
+        self.AIPaddleYPos = WINDOW_HEIGHT / 2 - PADDLE_HEIGHT / 2
+        #and ball direction
+        self.ballXDirection = 1
+        self.ballYDirection = 1
+        #starting point
+        self.ballXPos = WINDOW_WIDTH/2 - BALL_WIDTH/2
 
-        # Ball direction
-        self.ballxDir = 1
-        self.ballyDir = 1
-
-        # Defining the starting point of the ball
-        self.ballxPos = window_width/2 - ball_width/2
-
-        # Deciding movement of the ball
-        if (0 < num < 3):
-            self.ballxDir = 1
-            self.ballyDir = 1
+        #randomly decide where the ball will move
+        if(0 < num < 3):
+            self.ballXDirection = 1
+            self.ballYDirection = 1
         if (3 <= num < 5):
-            self.ballxDir = -1
-            self.ballyDir = 1
+            self.ballXDirection = -1
+            self.ballYDirection = 1
         if (5 <= num < 8):
-            self.ballxDir = 1
-            self.ballyDir = -1
+            self.ballXDirection = 1
+            self.ballYDirection = -1
         if (8 <= num < 10):
-            self.ballxDir = -1
-            self.ballyDir = 1
-
+            self.ballXDirection = -1
+            self.ballYDirection = -1
+        #new random number
         num = random.randint(0,9)
+        #where it will start, y part
+        self.ballYPos = num*(WINDOW_HEIGHT - BALL_HEIGHT)/9
 
-        self.ballyPos = num * (window_height - ball_height)/9
-
-    def getFrame(self):
+    #
+    def getPresentFrame(self):
+        #for each frame, calls the event queue, like if the main window needs to be repainted
         pygame.event.pump()
-        screen.fill(black)
-
-        drawAIpaddle(self.aipaddleyPos)
-        drawLearningpaddle(self.learningpaddleyPos)
-
-        drawBall(self.ballxPos, self.ballyPos)
-
-        #copies the pixels from our surface to a 3D array. we'll use this for Reinforcement Learning
+        #make the background black
+        screen.fill(BLACK)
+        #draw our paddles
+        drawLearningPaddle(self.LearningPaddleYPos)
+        drawAIPaddle(self.AIPaddleYPos)
+        #draw our ball
+        drawBall(self.ballXPos, self.ballYPos)
+        #copies the pixels from our surface to a 3D array. we'll use this for RL
         image_data = pygame.surfarray.array3d(pygame.display.get_surface())
-
+        #updates the window
         pygame.display.flip()
-
+        #return our surface data
         return image_data
 
+    #update our screen
     def getNextFrame(self, action):
         pygame.event.pump()
         score = 0
-        screen.fill(black)
-
-        self.aipaddleyPos = updateaiPaddle(action, self.aipaddleyPos)
-        drawAIpaddle(self.aipaddleyPos)
-
-        self.learningpaddleyPos = updatelearningPaddle(self.aipaddleyPos, self.ballyPos)
-        drawLearningpaddle(self.learningpaddleyPos)
-
-        [score, self.aipaddleyPos, self.learningpaddleyPos, self.ballxPos, self.ballxDir, self.ballyDir] = updateBallPos(self.aipaddleyPos, self.learningpaddleyPos, self.ballxPos, self.ballyPos, self.ballxDir, self.ballyDir)
-
-        drawBall(self.ballxPos, self.ballyPos)
-
-        image_data = pygame.surfarray.arra3d(pygame.display.get_surface())
-        # This window is updated
+        screen.fill(BLACK)
+        #update our paddle
+        self.LearningPaddleYPos = updateLearningPaddle(action, self.LearningPaddleYPos)
+        drawLearningPaddle(self.LearningPaddleYPos)
+        #update evil AI paddle
+        self.AIPaddleYPos = updateAIPaddle(self.AIPaddleYPos, self.ballYPos)
+        drawAIPaddle(self.AIPaddleYPos)
+        #update our vars by updating ball position
+        [score, self.LearningPaddleYPos, self.AIPaddleYPos, self.ballXPos, self.ballYPos, self.ballXDirection, self.ballYDirection] = updateBall(self.LearningPaddleYPos, self.AIPaddleYPos, self.ballXPos, self.ballYPos, self.ballXDirection, self.ballYDirection)
+        #draw the ball
+        drawBall(self.ballXPos, self.ballYPos)
+        #get the surface data
+        image_data = pygame.surfarray.array3d(pygame.display.get_surface())
+        #update the window
         pygame.display.flip()
-
+        #record the total score
         self.tally = self.tally + score
-        print "Tally : " + str(self.tally)
-
+        print "Tally is " + str(self.tally)
+        #return the score and the surface data
         return [score, image_data]
